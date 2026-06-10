@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Attendance System</title>
+
+<style>
+body{
+    font-family: Arial;
+    background:#f4f4f4;
+    margin:20px;
+}
+
+h2{ color:#333; }
+
+.class-switch{
+    display:flex;
+    gap:10px;
+    margin-bottom:15px;
+}
+
+.class-switch button{
+    padding:10px;
+    border:none;
+    border-radius:8px;
+    cursor:pointer;
+    background:#ddd;
+}
+
+.class-switch button.active{
+    background:#7a1230;
+    color:white;
+}
+
+.top-bar{
+    display:flex;
+    gap:10px;
+    margin-bottom:20px;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+    background:white;
+}
+
+th,td{
+    border:1px solid #ddd;
+    padding:10px;
+    text-align:center;
+}
+
+th{
+    background:#7a1230;
+    color:white;
+}
+
+button{
+    padding:8px 12px;
+    border:none;
+    border-radius:5px;
+    cursor:pointer;
+}
+
+.add-btn{ background:#7a1230; color:white; }
+.save-btn{ background:#4CAF50; color:white; }
+
+.delete-btn{
+    width:18px;
+    height:18px;
+    padding:0;
+    font-size:10px;
+    background:red;
+    color:white;
+    border:none;
+    border-radius:50%;
+    cursor:pointer;
+    margin-left:8px;
+}
+
+select,textarea{
+    width:100%;
+}
+
+textarea{ resize:none; }
+</style>
+</head>
+
+<body>
+
+<h2>Attendance System</h2>
+
+<!-- CLASS SWITCH -->
+<div class="class-switch">
+    <button id="btn-d6" class="active" onclick="switchClass('MT-D6-G1-C')">
+        MT-D6-G1-C
+    </button>
+
+<button id="btn-t3" onclick="switchClass('MT-T3-C')">
+    MT-T3-C
+</button>
+
+<button id="btn-t5" onclick="switchClass('MT-T5-G1-C')">
+    MT-T5-G1-C
+</button>
+</div>
+
+<div class="top-bar">
+    <input type="date" id="attendanceDate">
+
+    <button class="add-btn" onclick="addStudent()">
+        + Tambah Pelajar
+    </button>
+
+    <button class="save-btn" onclick="saveAttendance()">
+        Simpan Attendance
+    </button>
+</div>
+
+<table>
+<thead>
+<tr>
+    <th>Nama</th>
+    <th>Status</th>
+    <th>Remark</th>
+</tr>
+</thead>
+
+<tbody id="attendanceBody"></tbody>
+</table>
+
+<script>
+
+// ================= CLASS SYSTEM =================
+let currentClass = "MT-D6-G1-C";
+
+let classData = JSON.parse(
+    localStorage.getItem("classData")
+) || {
+    "MT-D6-G1-C": [],
+    "MT-T3-C": [],
+    "MT-T5-G1-C": []
+};
+
+// ================= SWITCH CLASS =================
+function switchClass(className){
+
+    currentClass = className;
+
+    if (!classData[className]) {
+        classData[className] = [];
+    }
+
+    document
+    .querySelectorAll(".class-switch button")
+    .forEach(btn => btn.classList.remove("active"));
+
+    if (className === "MT-D6-G1-C") {
+        document.getElementById("btn-d6").classList.add("active");
+
+    } else if (className === "MT-T3-C") {
+        document.getElementById("btn-t3").classList.add("active");
+
+    } else if (className === "MT-T5-G1-C") {
+        document.getElementById("btn-t5").classList.add("active");
+    }
+
+    loadStudents();
+}
+
+// ================= LOAD =================
+function loadStudents(){
+
+    const students = classData[currentClass];
+
+    const body = document.getElementById("attendanceBody");
+    body.innerHTML = "";
+
+    students.forEach((name,index)=>{
+
+        body.innerHTML += `
+        <tr>
+
+            <td>
+                ${name}
+                <button class="delete-btn" onclick="removeStudent(${index})">×</button>
+            </td>
+
+            <td>
+                <select id="status-${index}">
+                    <option value="Hadir">Hadir</option>
+                    <option value="Tidak Hadir">Tidak Hadir</option>
+                </select>
+            </td>
+
+            <td>
+                <textarea id="remark-${index}" rows="2"></textarea>
+            </td>
+
+        </tr>`;
+    });
+}
+
+// ================= ADD =================
+function addStudent(){
+
+    const name = prompt("Masukkan nama pelajar");
+    if(!name) return;
+
+    classData[currentClass].push(name);
+
+    localStorage.setItem(
+        "classData",
+        JSON.stringify(classData)
+    );
+
+    loadStudents();
+}
+
+// ================= REMOVE =================
+function removeStudent(index){
+
+    const students = classData[currentClass];
+
+    if(!confirm("Buang " + students[index] + "?")) return;
+
+    students.splice(index,1);
+
+    localStorage.setItem(
+        "classData",
+        JSON.stringify(classData)
+    );
+
+    loadStudents();
+}
+
+// ================= RESET =================
+function resetForm(){
+
+    document.getElementById("attendanceDate").value = "";
+
+    const students = classData[currentClass];
+
+    students.forEach((name,index)=>{
+        document.getElementById(`status-${index}`).value = "Hadir";
+        document.getElementById(`remark-${index}`).value = "";
+    });
+}
+
+// ================= SAVE =================
+async function saveAttendance(){
+
+    const date = document.getElementById("attendanceDate").value;
+
+    if(!date){
+        alert("Sila pilih tarikh dahulu");
+        return;
+    }
+
+    const url = "https://script.google.com/macros/s/AKfycbxqKqiRWF_P6oStsq1FJg2bk2NHvb2X31_4nHkTADAH9_w3V7vaPraCuMC01lYi_fDc/exec";
+
+    const students = classData[currentClass];
+
+    const payload = {
+        sheetName: currentClass,
+        attendance: students.map((name,index)=>({
+            name,
+            date,
+            status: document.getElementById(`status-${index}`).value,
+            remark: document.getElementById(`remark-${index}`).value
+        }))
+    };
+
+    await fetch(url,{
+        method:"POST",
+        body:JSON.stringify(payload)
+    });
+
+    alert("Attendance berjaya dihantar");
+
+    resetForm();
+}
+
+// INIT
+loadStudents();
+
+</script>
+
+</body>
+</html>
